@@ -48,10 +48,11 @@ ui <- fluidPage(
 	navlistPanel(
 		widths = c(2,10),
 		tabPanel("1. Paste sample-well",
-						 h4("Paste sample-well-set mapping, e.g. sample01; A01; A and press the Read button"), 
+						 tags$h4("Paste sample-well-set mapping and press the Read button"), 
+						 tags$h5("You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'. Example data is already supplied. "),
 						 fluidRow(
 						 	column(6,
-						 textAreaInput("csv", 
+						 textAreaInput("csv", value = "sample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB",
 						 							label = "", 
 						 							#value = "sample01; A01; setA", 
 						 							#width = '400px', 
@@ -93,11 +94,14 @@ ui <- fluidPage(
 						 tags$br(),
 						 tags$hr(),
 						 h4("Sample sheet preview"),
-						 tableOutput("shPreview")
+						 tableOutput("shPreview1")
 						 ),
-		tabPanel("3. Get samplesheet",
-						 h4("This is the third panel"), 
-						 downloadButton("download")
+		tabPanel("3. Add run details and get samplesheet",
+						 h4("Download samplesheet or sample-index mapping"),
+						 tags$h6("Download complete sample sheet or just the sample-index mapping, to be inserted after the [DATA] filed in a sample sheet"),
+						 downloadBttn("download1", style = "minimal", label = "Complete sample sheet (in development)", size = "sm"),
+						 downloadBttn("download2", style = "minimal", label = "Sample-index mapping", size = "sm"),
+						 tableOutput("shPreview2")
 						 )
 	)
 )
@@ -165,7 +169,19 @@ server <- function(input, output, session) {
 												message = "Two or more samples have the same i7 or i5 index.\n 
 												This is OK if you are using combinatorial dual indexing scheme, but consider using UDIs!")
 		}
-	})	
+	})
+	
+	# -------------------------------observer to update set input based on kit selected
+	# zymo has one set only
+	observeEvent(input$indexkit, {
+		if(input$indexkit == "zymo") {
+			updatePickerInput(session = session, 
+												inputId = "set", 
+												choices = c("A"), 
+												selected = "A")
+			}
+	})
+		
 	# ------------------------------ RENDER OUTPUTS
 	output$csvread <- function(){
 		validate(
@@ -176,25 +192,36 @@ server <- function(input, output, session) {
 		dups_indexes <- which( duplicated(dups) | duplicated(dups, fromLast = T) )
 		
 		knitr::kable(values$csv_data) %>%
-			kable_styling(bootstrap_options = c("hover")) %>%
+			kable_styling(fixed_thead = TRUE,
+										bootstrap_options = c("hover")) %>%
 			row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 	}
 	
 		
-		output$shPreview <- function(){
+		output$shPreview1 <- function(){
 			# first find duplicate indexes to mark them in kable
 			dups <- joindata()[ , "index_check"]
 			dups_indexes <- which( duplicated(dups) | duplicated(dups, fromLast = T) )
 			
 			knitr::kable( joindata(), "html") %>% 
-				kable_styling(bootstrap_options = c("hover")) %>%
+				kable_styling(fixed_thead = TRUE, 
+											bootstrap_options = c("hover")) %>%
 				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 			
 		}
 	#}
 	#})
 	# -------------------------------------------------------------TAB3 generate samplesheet and download
+	output$download1 <- downloadHandler(
+		filename = paste(Sys.Date(), "-samplesheet.csv", sep = ""),
+		content = function(file) {fwrite( joindata(), sep = ",", file = file )}
+	)
 	
+	output$download2 <- downloadHandler(
+		filename = paste(Sys.Date(), "-sample-index.csv", sep = ""),
+		content = function(file) {fwrite( joindata(), sep = ",", file = file )}
+	)
+
 }
 
 shinyApp(ui, server)
