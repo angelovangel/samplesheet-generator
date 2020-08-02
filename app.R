@@ -38,13 +38,23 @@ ui <- fluidPage(
 	
 	useShinyjs(),
 	use_notiflix_notify(position = "right-bottom", width = "380px"),
-	use_notiflix_report(cssAnimationDuration = 100, width = "400px"),
+	use_notiflix_report(cssAnimationDuration = 100, width = "100%"),
+	#use_notie(), 
 	
 	theme = shinytheme("cosmo"),
 	titlePanel("Illumina Samplesheet Generator", 
 						 windowTitle = "Illumina Samplesheet Generator"),
-	tags$caption("NCCT | Microbiology"),
+	fluidRow(
+		column(8,
+	tags$caption(tags$a(href = "https://portal.qbic.uni-tuebingen.de/portal/web/ncct/our-center",
+											"NCCT | Microbiology", target = "_blank"))
+		),
+		column(2, offset = 2,
+	actionBttn("supportedkits", label = "Supported kits", size = "xs")
+		)
+	),
 	tags$hr(),
+	
 	navlistPanel(
 		widths = c(2,10),
 		tabPanel("1. Paste sample-well",
@@ -169,6 +179,23 @@ server <- function(input, output, session) {
 												message = "Two or more samples have the same i7 or i5 index.\n 
 												This is OK if you are using combinatorial dual indexing scheme, but consider using UDIs!")
 		}
+	})
+	
+	# various OBSERVERS
+	#-------------------------------- list supported kits
+	observeEvent(input$supportedkits, {
+		nx_report_info("Supported indexing kits", 
+									 message = tags$p(
+									 	style = "text-align: left;", 
+									 	tags$ul(tags$li(
+									 	tags$a(href = "google.com", "IDT for Illumina DNA/RNA UD Indexes, Tagmentation, Sets A-D", target = "_blank")),
+									 	tags$li(
+									 	"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs), Sets 1-4"),
+									 	tags$li(
+									 	"Zymo-Seq UDI Primer Set, set A")
+									 	)
+									 )
+		)
 	})
 	
 	# -------------------------------observer to update set input based on kit selected
