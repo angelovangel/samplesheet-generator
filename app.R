@@ -139,7 +139,6 @@ ui <- fluidPage(
 			# inputs for Header
 			fluidRow(column(
 				3,
-				# Date
 				airDatepickerInput(inputId = "date", "Date", value = Sys.Date())
 			), column(
 				3,
@@ -149,11 +148,12 @@ ui <- fluidPage(
 				textInput("description", "Description")
 			), column(
 				3,
+				# inputs for Settings
 				pickerInput("trimming", "Adapter trimming", 
 										choices = c("Adapter", "AdapterRead2"), 
 										multiple = TRUE)
 			)),
-			# inputs for Settings
+			
 
 			#------------------------------------------------------
 			tags$h4("Download samplesheet or sample-index mapping"),
@@ -188,7 +188,11 @@ server <- function(input, output, session) {
 													 samples_pasted = 0, # number of samples in pasted data
 													 samples_matched = 0, # number of samples with matched index well
 													 samples_clashed = 0) # tracks if indexes are unique in sample sheet
-	
+	# these are the reactives for the sample sheet sections apart from [DATA]
+	sh_values <- reactiveValues(date = NULL,
+															investigator = NULL,
+															description = NULL,
+															trimming = NULL)
 	# ------------------------------------------------------------- read in pasted data
 	observeEvent(input$read, {
 		if(input$csv != '') {
@@ -294,6 +298,13 @@ server <- function(input, output, session) {
 												selected = "A")
 			}
 	})
+	
+	#-------------------------------observer to update sh_values
+	observe({
+		sh_values$date <- input$date
+		sh_values$investigator <- input$investigator
+		sh_values$description <- input$description
+	})
 		
 	# ------------------------------ RENDER OUTPUTS
 	output$csvread <- function(){
@@ -339,8 +350,28 @@ server <- function(input, output, session) {
 	# -------------------------------------------------------------TAB3 generate samplesheet and download
 	output$download1 <- downloadHandler(
 		filename = paste(Sys.Date(), "-samplesheet.csv", sep = ""),
-		content = function(file) { nx_report_error("Error!", "This feature is still in development") }
-		#content = function(file) {fwrite( joindata(), sep = ",", file = file )}
+		content = function(file) { 
+			filename = paste(Sys.Date(), "-samplesheet.csv", sep = "")
+			
+			# construct sample sheet here
+			sh <- c("[Header]", 
+							mapply(paste, 
+										 list("Date", "Investigator", "Description"), 
+										 list(sh_values$date, sh_values$investigator, sh_values$description), MoreArgs = list(sep = ",")
+										 ),
+							"[Data]"
+			)
+			
+			write(sh, file = file)
+			write.table(joindata(), 
+									file = file, 
+									append = TRUE, 
+									sep = ",",
+									quote = FALSE, 
+									col.names = TRUE)
+			#nx_report_error("Error!", "This feature is still in development") 
+			}
+		
 	)
 	
 	output$download2 <- downloadHandler(
