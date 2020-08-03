@@ -1,5 +1,6 @@
 ## app.R ##
 library(shiny)
+library(shinydashboard)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyjs)
@@ -26,9 +27,9 @@ indexkitslist <- list(
 
 machines <- list(
 	"forward strand workflow" = list(
-		"MiSeq" = "miseq", "NovaSeq" = "miseq", "HiSeq 2500" = "miseq", "HiSeq 2000" = "miseq"),
+		"MiSeq" = "miseq", "NextSeq 2000" = "miseq", "HiSeq 2000/2500" = "miseq", "NovaSeq" = "miseq"),
 	"reverse complement workflow"= list(
-		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq" = "nextseq", "HiSeq X" = "nextseq")
+		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq 500/550" = "nextseq", "HiSeq 3000/4000/X" = "nextseq")
 )
 # load data and make it available for all sessions
  indexcsv <- fread("indexdata/indexcsv.csv")
@@ -38,6 +39,7 @@ machines <- list(
 
 ####
 ui <- fluidPage(
+	#tags$head(tags$style(HTML(".small-box {height: 25px}"))),
 	
 	useShinyjs(),
 	use_notiflix_notify(position = "right-bottom", width = "380px"),
@@ -48,15 +50,19 @@ ui <- fluidPage(
 	titlePanel("Illumina Samplesheet Generator", 
 						 windowTitle = "Illumina Samplesheet Generator"),
 	fluidRow(
-		column(8,
-	tags$caption(tags$a(href = "https://portal.qbic.uni-tuebingen.de/portal/web/ncct/our-center",
-											"NCCT | Microbiology", target = "_blank"))
-		),
-		column(2, offset = 2,
-	actionBttn("supportedkits", label = "Supported kits", size = "xs")
-		)
+		column(2,
+	tags$caption(
+	#	),
+	#column(2, 
+				 actionBttn("supportedkits", label = "Supported kits", size = "xs")
+	)),
+		column(10, 
+					 valueBoxOutput("samples_pasted", width = 4),
+					 valueBoxOutput("samples_matched", width = 4),
+					 valueBoxOutput("samples_clashed", width = 4)
+					 )
 	),
-	tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
+	#tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
 	tags$hr(),
 	
 	navlistPanel(
@@ -70,7 +76,7 @@ ui <- fluidPage(
 						 							label = "", 
 						 							#value = "sample01; A01; setA", 
 						 							#width = '400px', 
-						 							height = '400px')),
+						 							height = '300px')),
 						 column(6,
 						 tableOutput("csvread")
 						 )),
@@ -127,9 +133,9 @@ server <- function(input, output, session) {
 	# setup reactives for
 	# pasted data and indexkits data
 	values <- reactiveValues(csv_data = NULL, 
-													 pasted_samples = NULL, # number of samples in pasted data
-													 matched_samples = NULL, # number of samples with matched index well
-													 index_unique = TRUE) # tracks if indexes are unique in sample sheet
+													 samples_pasted = 0, # number of samples in pasted data
+													 samples_matched = 0, # number of samples with matched index well
+													 samples_clashed = 0) # tracks if indexes are unique in sample sheet
 	
 	# ------------------------------------------------------------- read in pasted data
 	observeEvent(input$read, {
@@ -147,7 +153,8 @@ server <- function(input, output, session) {
 																			 )
 							 ) 
 													)
-			
+		values$samples_pasted <- nrow(values$csv_data)
+		
 		} else {
 			nx_notify_error("Paste something first!")
 		}
@@ -162,7 +169,7 @@ server <- function(input, output, session) {
 	
 	#------------------------------------------------------------ join
 	joindata <- reactive({
-		validate(need(values$csv_data, "pasted data not ok"))
+		validate(need(values$csv_data, "No samples data pasted"))
 		
 		# values$csv_data <- values$csv_data %>% mutate(well_new = str_replace(well, "0", "0?"))
 		values$csv_data %>% 
@@ -170,18 +177,28 @@ server <- function(input, output, session) {
 			
 	})
 	
+	# observe index clashes and number of matched and clashed samples
 	observe({
 		# both indexes are not unique
 		if ( length(unique(joindata()$index_check)) < length(joindata()$index_check) ) {
 			
-			values$index_unique <- FALSE
+			values$samples_matched <- nrow( joindata() )
+			values$samples_clashed <- length(joindata()$index_check) - length(unique(joindata()$index_check))
+				
 			nx_report_error("Index clash!", message = "Two or more samples (highlighted in red) have the same indexes! Please check your input.")
 		
 		# i7 or i5 is not unique, i.e. CD indexing schemes
 		} else if( length(unique(joindata()$index)) < length(joindata()$index) ) {
+			
+			values$samples_matched <- nrow( joindata() )
+			#values$samples_matched <- nrow( indexdata() )
+			
 			nx_report_warning("Warning!", 
 												message = "Two or more samples have the same i7 or i5 index.\n 
 												This is OK if you are using combinatorial dual indexing scheme, but consider using UDIs!")
+		} else {
+			values$samples_matched <- nrow( joindata() )
+			values$samples_clashed <- 0
 		}
 	})
 	
@@ -192,20 +209,24 @@ server <- function(input, output, session) {
 									 message = tags$p(
 									 	style = "text-align: left;", 
 									 	tags$ul(tags$li(
-									 	tags$a(href = "google.com", 
+									 	tags$a(href = "https://emea.support.illumina.com/bulletins/2020/06/illumina-library-prep-kits-and-associated-index-kits.html", 
 									 				 "IDT for Illumina DNA UD Indexes, Tagmentation, Sets A-D, Cat.# 20027213, 20027214, 20027215, 20027216", 
 									 				 target = "_blank")),
 									 	tags$li(
-									 		tags$a(href = "google.com", 
+									 		tags$a(href = "https://emea.support.illumina.com/bulletins/2020/06/illumina-library-prep-kits-and-associated-index-kits.html", 
 									 					 "IDT for Illumina DNA/RNA UD Indexes, Tagmentation, Sets A-D ver2, Cat.# 20027213, 20027214, 20042666, 20742667", 
 									 					 target = "_blank")),
 									 	tags$li(
-									 	"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs), Sets 1-4"),
-									 	tags$li(
-									 	"Zymo-Seq UDI Primer Set, set A")
+									 		tags$a(
+									 			href = "https://international.neb.com/tools-and-resources/selection-charts/nebnext-multiplex-oligos-selection-chart",
+									 			"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs), Sets 1-4, Cat.# E6440, E6442, E6444, E6446", 
+									 			target = "_blank")),
+									 	tags$li(tags$a(
+									 		href = "https://www.zymoresearch.de/products/zymo-seq-udi-primer-sets",
+									 		"Zymo-Seq UDI Primer Set, set A, Cat.# D3096", target = "_blank"))
 									 	),
 									 	tags$a(href = "https://github.com/angelovangel/samplesheet-generator/issues/new?labels=new_kit&title=New+index+kit+request", 
-									 				 "Request new kit by opening an issue on GitHub", 
+									 				 "Request to include a new kit by opening an issue on GitHub", 
 									 				 target = "_blank")
 									 )
 		)
@@ -225,7 +246,7 @@ server <- function(input, output, session) {
 	# ------------------------------ RENDER OUTPUTS
 	output$csvread <- function(){
 		validate(
-			need(values$csv_data, message = "The pasted data must have 3 columns (any separator) and at least 1 new line")
+			need(values$csv_data, message = "The pasted data must have 3 columns (any separator) and at least 1 new line. No empty lines are allowed.")
 		)
 		# check for samples with the same well and same set
 		dups <- values$csv_data[ , c("Index_Plate_Well", "Index_Plate")]
@@ -249,6 +270,18 @@ server <- function(input, output, session) {
 				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 			
 		}
+		
+		output$samples_pasted <- renderValueBox({
+			valueBox(values$samples_pasted, "samples pasted")
+		})
+		
+		output$samples_matched <- renderValueBox({
+			valueBox(values$samples_matched, "samples with matched indexes")
+		})
+		
+		output$samples_clashed <- renderValueBox({
+			valueBox(values$samples_clashed, "samples with clash indexes")
+		})
 	#}
 	#})
 	# -------------------------------------------------------------TAB3 generate samplesheet and download
