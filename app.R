@@ -16,7 +16,8 @@ library(kableExtra)
 
 indexkitslist <- list(
 	"Illumina" = list(
-		"IDT for Illumina DNA/RNA UD Indexes, Tagmentation" = "idt-udp"),
+		"IDT for Illumina DNA UD Indexes, Tagmentation" = "idt-udp",
+		"IDT for Illumina DNA/RNA UD Indexes, Tagmentation, ver2" = "idt-udp-ver2"),
 	"NEB" = list(
 		"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs)" = "neb"),
 	"Zymo" = list(
@@ -31,14 +32,16 @@ machines <- list(
 )
 # load data and make it available for all sessions
  indexcsv <- fread("indexdata/indexcsv.csv")
-
+ sh_colnames <- c("Sample_ID", "Index_Plate_Well", "Index_Plate", 
+ 								 "I7_Index_ID", "index", "I5_Index_ID", "index2", 
+ 								 "Sample_Project", "Description")
 
 ####
 ui <- fluidPage(
 	
 	useShinyjs(),
 	use_notiflix_notify(position = "right-bottom", width = "380px"),
-	use_notiflix_report(cssAnimationDuration = 100, width = "100%"),
+	use_notiflix_report(cssAnimationDuration = 100, width = "100%", messageMaxLength = 1800),
 	#use_notie(), 
 	
 	theme = shinytheme("cosmo"),
@@ -53,6 +56,7 @@ ui <- fluidPage(
 	actionBttn("supportedkits", label = "Supported kits", size = "xs")
 		)
 	),
+	tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
 	tags$hr(),
 	
 	navlistPanel(
@@ -188,12 +192,21 @@ server <- function(input, output, session) {
 									 message = tags$p(
 									 	style = "text-align: left;", 
 									 	tags$ul(tags$li(
-									 	tags$a(href = "google.com", "IDT for Illumina DNA/RNA UD Indexes, Tagmentation, Sets A-D", target = "_blank")),
+									 	tags$a(href = "google.com", 
+									 				 "IDT for Illumina DNA UD Indexes, Tagmentation, Sets A-D, Cat.# 20027213, 20027214, 20027215, 20027216", 
+									 				 target = "_blank")),
+									 	tags$li(
+									 		tags$a(href = "google.com", 
+									 					 "IDT for Illumina DNA/RNA UD Indexes, Tagmentation, Sets A-D ver2, Cat.# 20027213, 20027214, 20042666, 20742667", 
+									 					 target = "_blank")),
 									 	tags$li(
 									 	"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs), Sets 1-4"),
 									 	tags$li(
 									 	"Zymo-Seq UDI Primer Set, set A")
-									 	)
+									 	),
+									 	tags$a(href = "https://github.com/angelovangel/samplesheet-generator/issues/new?labels=new_kit&title=New+index+kit+request", 
+									 				 "Request new kit by opening an issue on GitHub", 
+									 				 target = "_blank")
 									 )
 		)
 	})
@@ -241,7 +254,8 @@ server <- function(input, output, session) {
 	# -------------------------------------------------------------TAB3 generate samplesheet and download
 	output$download1 <- downloadHandler(
 		filename = paste(Sys.Date(), "-samplesheet.csv", sep = ""),
-		content = function(file) {fwrite( joindata(), sep = ",", file = file )}
+		content = function(file) { nx_report_error("Error!", "This feature is still in development") }
+		#content = function(file) {fwrite( joindata(), sep = ",", file = file )}
 	)
 	
 	output$download2 <- downloadHandler(
