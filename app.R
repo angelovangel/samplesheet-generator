@@ -67,62 +67,114 @@ ui <- fluidPage(
 	
 	navlistPanel(
 		widths = c(2,10),
-		tabPanel("1. Paste sample-well",
-						 tags$h4("Paste sample-well-set mapping and press the Read button"), 
-						 tags$h5("You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'. Example data is already supplied. "),
-						 fluidRow(
-						 	column(6,
-						 textAreaInput("csv", value = "sample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB",
-						 							label = "", 
-						 							#value = "sample01; A01; setA", 
-						 							#width = '400px', 
-						 							height = '300px')),
-						 column(6,
-						 tableOutput("csvread")
-						 )),
-						 actionButton("read", "Read")
-						 ),
-		tabPanel("2. Select index kit and machine",
-						 fluidRow(column(
-						 	6,
-						 	pickerInput(
-						 		"indexkit",
-						 		choices = indexkitslist,
-						 		multiple = FALSE,
-						 		width = "100%",
-						 		label = "Select Index Kit"
-						 	)
-						 ), column(
-						 	2,
-						 	pickerInput(
-						 		"set",
-						 		choices = c("A", "B", "C", "D"),
-						 		selected = "A",
-						 		multiple = TRUE,
-						 		width = "100%", 
-						 		label = "Select Set(s)"
-						 	)
-						 ), column(
-						 4,
-						 pickerInput("machine", 
-						 						choices = machines, 
-						 						multiple = FALSE, width = "80%", 
-						 						label = "Select machine"))
-						 ), 
-						 
-						 #tags$hr(),
-						 tags$br(),
-						 tags$hr(),
-						 h4("Sample sheet preview"),
-						 tableOutput("shPreview1")
-						 ),
-		tabPanel("3. Add run details and get samplesheet",
-						 h4("Download samplesheet or sample-index mapping"),
-						 tags$h6("Download complete sample sheet or just the sample-index mapping, to be inserted after the [DATA] filed in a sample sheet"),
-						 downloadBttn("download1", style = "minimal", label = "Complete sample sheet (in development)", size = "sm"),
-						 downloadBttn("download2", style = "minimal", label = "Sample-index mapping", size = "sm"),
-						 tableOutput("shPreview2")
-						 )
+		tabPanel(
+			"1. Paste sample-well",
+			tags$h4("Paste sample-well-set mapping and press the Read button"),
+			tags$h5(
+				"You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'. Example data is already supplied. "
+			),
+			fluidRow(column(
+				6,
+				textAreaInput(
+					"csv",
+					value = "sample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB",
+					label = "",
+					#value = "sample01; A01; setA",
+					#width = '400px',
+					height = '300px'
+				)
+			),
+			column(6,
+						 tableOutput("csvread"))),
+			actionButton("read", "Read")
+		), 
+		tabPanel(
+			"2. Select index kit and machine",
+			fluidRow(
+				column(
+					6,
+					pickerInput(
+						"indexkit",
+						choices = indexkitslist,
+						multiple = FALSE,
+						width = "100%",
+						label = "Select Index Kit"
+					)
+				),
+				column(
+					2,
+					pickerInput(
+						"set",
+						choices = c("A", "B", "C", "D"),
+						selected = "A",
+						multiple = TRUE,
+						width = "100%",
+						label = "Select Set(s)"
+					)
+				),
+				column(
+					4,
+					pickerInput(
+						"machine",
+						choices = machines,
+						multiple = FALSE,
+						width = "80%",
+						label = "Select machine"
+					)
+				)
+			),
+			
+			#tags$hr(),
+			tags$br(),
+			tags$hr(),
+			h4("Sample sheet preview"),
+			tableOutput("shPreview1")
+		),
+		tabPanel(
+			"3. Add run details and get samplesheet",
+			tags$h4("Fill in optional fileds"),
+			tags$h6(
+				"For running bcl2fastq these fields are optional, but may be needed if the sample sheet is needed for other software"
+			),
+			# inputs for Header
+			fluidRow(column(
+				3,
+				# Date
+				airDatepickerInput(inputId = "date", "Date", value = Sys.Date())
+			), column(
+				3,
+				textInput(inputId = "investigator", "Investigator"),
+			), column(
+				3,
+				textInput("description", "Description")
+			), column(
+				3,
+				pickerInput("trimming", "Adapter trimming", 
+										choices = c("Adapter", "AdapterRead2"), 
+										multiple = TRUE)
+			)),
+			# inputs for Settings
+
+			#------------------------------------------------------
+			tags$h4("Download samplesheet or sample-index mapping"),
+			tags$h6(
+				"Download complete sample sheet or just the sample-index mapping, to be inserted after the [DATA] filed in a sample sheet"
+			),
+			downloadBttn(
+				"download1",
+				style = "minimal",
+				label = "Complete sample sheet (in development)",
+				size = "sm"
+			),
+			downloadBttn(
+				"download2",
+				style = "minimal",
+				label = "Sample-index mapping",
+				size = "sm"
+			),
+			# preview complete sample sheet
+			tableOutput("shPreview2")
+		)
 	)
 )
 
@@ -143,12 +195,12 @@ server <- function(input, output, session) {
 		
 		values$csv_data <- try(
 			fread(text = input$csv, header = FALSE, col.names = c("Sample_ID", "Index_Plate_Well", "Index_Plate")) %>%
-				# to capture cases where set 1,2... is used instead of set A, B...
+				# to capture cases where set 1,2... or a,b... is used instead of set A, B...
 				mutate(Index_Plate = case_when(
-																			 Index_Plate == 1 ~ "A",
-																			 Index_Plate == 2 ~ "B",
-																			 Index_Plate == 3 ~ "C",
-																			 Index_Plate == 4 ~ "D",
+																			 Index_Plate == 1 | Index_Plate == "a" ~ "A",
+																			 Index_Plate == 2 | Index_Plate == "b" ~ "B",
+																			 Index_Plate == 3 | Index_Plate == "c" ~ "C",
+																			 Index_Plate == 4 | Index_Plate == "d" ~ "D",
 																			 TRUE ~ as.character(Index_Plate)
 																			 )
 							 ) 
