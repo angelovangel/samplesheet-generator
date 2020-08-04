@@ -14,6 +14,9 @@ library(kableExtra)
 #### 
 # setup global variables
 ####
+# ------------------------------------------------------------------comment this out before deployment
+commit_hash <- system("git rev-parse --short HEAD", intern = TRUE)
+# ------------------------------------------------------------------comment this out before deployment
 
 indexkitslist <- list(
 	"Illumina" = list(
@@ -38,7 +41,7 @@ machines <- list(
  								 "I7_Index_ID", "index", "I5_Index_ID", "index2", 
  								 "Sample_Project", "Description")
 
-####
+#####
 ui <- fluidPage(
 	#tags$head(tags$style(HTML(".small-box {height: 25px}"))),
 	
@@ -163,15 +166,16 @@ ui <- fluidPage(
 											 status = "info", fill = TRUE)
 			)),
 			tags$hr(),
-			#------------------------------------------------------
+			
 			tags$h4("Download samplesheet or sample-index mapping"),
 			tags$h6(
-				"Download complete sample sheet or just the sample-index mapping, to be inserted after the [DATA] filed in a sample sheet"
+				"Download complete sample sheet or just the sample-index mapping, to be inserted after the [DATA] field in a sample sheet. 
+				A preview of the sample sheet is shown below."
 			),
 			downloadBttn(
 				"download1",
 				style = "minimal",
-				label = "Complete sample sheet (in development)",
+				label = "Complete sample sheet",
 				size = "sm"
 			),
 			downloadBttn(
@@ -181,7 +185,7 @@ ui <- fluidPage(
 				size = "sm"
 			),
 			# preview complete sample sheet
-			tableOutput("shPreview2")
+			verbatimTextOutput("shPreview2")
 		)
 	)
 )
@@ -227,7 +231,7 @@ server <- function(input, output, session) {
 		}
 	}
 							 )
-	
+	#-----------------------------------------------------------REACTIVES
 	# --------------------------------------------------------- filter index data
 	indexdata <- reactive({
 		validate(need(input$set, message = "Set is required!"))
@@ -242,6 +246,36 @@ server <- function(input, output, session) {
 		values$csv_data %>% 
 			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate"))
 			
+	})
+	#------------------------------------------------------------ header of sample sheet
+	sh <- reactive({
+		c(
+			"[Header]",
+			mapply(
+				paste,
+				list("Date", "Investigator", "Description", "Workflow"),
+				list(sh_values$date, sh_values$investigator, sh_values$description,"GenerateFASTQ"),
+				MoreArgs = list(sep = ",")
+			),
+			"", #empty lines are ignored - here just for clarity
+			"[SoftwareInfo]",
+			paste("name", "samplesheet-generator", sep = ","),
+			paste("git_commit", commit_hash, sep = ","),
+			# this app must be under git control!
+			paste("executed_on", Sys.time(), sep = ","),
+			paste("author", "Angel Angelov", sep = ","),
+			"",
+			"[Settings]",
+			paste("Adapter", sh_values$trimm_seq1, sep = ","),
+			paste("AdapterRead2", sh_values$trimm_seq2, sep = ","),
+			"",
+			"[Reads]",
+			#  only required when using a sample sheet file to set up a sequencing run through the MiSeq® Control Software.
+			sh_values$read1,
+			sh_values$read2,
+			"",
+			"[Data]"
+		)
 	})
 	
 	# observe index clashes and number of matched and clashed samples
@@ -258,7 +292,6 @@ server <- function(input, output, session) {
 		} else if( length(unique(joindata()$index)) < length(joindata()$index) ) {
 			
 			values$samples_matched <- nrow( joindata() )
-			#values$samples_matched <- nrow( indexdata() )
 			
 			nx_report_warning("Warning!", 
 												message = "Two or more samples have the same i7 or i5 index.\n 
@@ -310,6 +343,7 @@ server <- function(input, output, session) {
 			}
 	})
 	
+	
 	#---------------------------------------------------------observer to update sh_values
 	observe({
 		sh_values$date <- input$date
@@ -321,16 +355,21 @@ server <- function(input, output, session) {
 			sh_values$trimm_seq1 <- "CTGTCTCTTATACACATCT"
 		
 		# neb and zymo have TruSeq adapters
-		} else if( (input$indexkit == "neb" | input$indexkit == "zymo") | input$trimming ) {
+		} else if( (input$indexkit == "neb" | input$indexkit == "zymo") & input$trimming ) {
 			sh_values$trimm_seq1 <- "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
 			sh_values$trimm_seq2 <- "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+		} else {
+			# this may seem unnecessary, but I need NULL, not NA, which happens if directly input$trimm_seq1 is used
+			sh_values$trimm_seq1 <- NULL
+			sh_values$trimm_seq2 <- NULL
 		}
-		
-		if( !is.na(input$read1) ) {
+		# this may seem unnecessary, but I need NULL, not NA
+		if( !is.na(input$read1) | !is.na(input$read2) ) {
 			sh_values$read1 <- input$read1
-		}
-		if( !is.na(input$read2) ) {
 			sh_values$read2 <- input$read2
+		} else {
+			sh_values$read1 <- NULL
+			sh_values$read2 <- NULL
 		}
 		
 	})
@@ -344,25 +383,37 @@ server <- function(input, output, session) {
 		dups <- values$csv_data[ , c("Index_Plate_Well", "Index_Plate")]
 		dups_indexes <- which( duplicated(dups) | duplicated(dups, fromLast = T) )
 		
-		knitr::kable(values$csv_data) %>%
+		kableExtra::kable(values$csv_data) %>%
 			kable_styling(fixed_thead = TRUE,
 										bootstrap_options = c("hover")) %>%
 			row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 	}
 	
-		
+		#---------------------------------------------------------preview data
 		output$shPreview1 <- function(){
 			# first find duplicate indexes to mark them in kable
 			dups <- joindata()[ , "index_check"]
 			dups_indexes <- which( duplicated(dups) | duplicated(dups, fromLast = T) )
 			
-			knitr::kable( joindata()[, ..sh_colnames], "html") %>% # for ..sh_colnames --> Perhaps you intended DT[, ..sh_colnames]. This difference to data.frame is deliberate and explained in FAQ 1.1.
+			kableExtra::kable( joindata()[, ..sh_colnames], "html") %>% # for ..sh_colnames --> Perhaps you intended DT[, ..sh_colnames]. This difference to data.frame is deliberate and explained in FAQ 1.1.
 				kable_styling(fixed_thead = TRUE, 
 											bootstrap_options = c("hover")) %>%
 				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 			
 		}
+		#---------------------------------------------------------preview sample sheet header
+		output$shPreview2 <- renderPrint({
+			write( sh(), file = "");
+			write.table(joindata()[, ..sh_colnames], 
+									file = "", 
+									append = TRUE, 
+									sep = ",",
+									quote = FALSE, 
+									col.names = TRUE, 
+									row.names = FALSE)
+		})
 		
+		#---------------------------------------------------------value boxes renders
 		output$samples_pasted <- renderValueBox({
 			valueBox(values$samples_pasted, "samples pasted")
 		})
@@ -380,32 +431,8 @@ server <- function(input, output, session) {
 	output$download1 <- downloadHandler(
 		filename = paste(Sys.Date(), "-samplesheet.csv", sep = ""),
 		content = function(file) { 
-			filename = paste(Sys.Date(), "-samplesheet.csv", sep = "")
 			
-			# construct sample sheet here
-			sh <- c("[Header]", 
-							mapply(paste, 
-										 list("Date", "Investigator", "Description", "Workflow"), 
-										 list(sh_values$date, sh_values$investigator, sh_values$description, "GenerateFASTQ"), 
-										 MoreArgs = list(sep = ",")
-										 ),
-							"[SoftwareInfo]",
-							paste("name", "samplesheet-generator", sep = ","),
-							paste("git_commit", "ec6060c", sep = ","), # this app must be under git control!
-							paste("executed_on", Sys.time(), sep = ","),
-							paste("author", "Angel Angelov", sep = ","),
-							
-							"[Settings]",
-							paste("Adapter", sh_values$trimm_seq1, sep = ","),
-							paste("AdapterRead2", sh_values$trimm_seq2, sep = ","),
-							
-							"[Reads]",  #  only required when using a sample sheet file to set up a sequencing run through the MiSeq® Control Software.
-							sh_values$read1, 
-							sh_values$read2,
-							"[Data]"
-			)
-			
-			write(sh, file = file)
+			write(sh(), file = file) #----------------------------------sh is constructed in REACTIVES above
 			write.table(joindata()[, ..sh_colnames], 
 									file = file, 
 									append = TRUE, 
@@ -420,7 +447,7 @@ server <- function(input, output, session) {
 	
 	output$download2 <- downloadHandler(
 		filename = paste(Sys.Date(), "-sample-index.csv", sep = ""),
-		content = function(file) {fwrite( joindata(), sep = ",", file = file )}
+		content = function(file) {fwrite( joindata()[, ..sh_colnames], sep = ",", file = file )}
 	)
 
 }
