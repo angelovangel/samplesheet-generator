@@ -33,6 +33,7 @@ machines <- list(
 )
 # load data and make it available for all sessions
  indexcsv <- fread("indexdata/indexcsv.csv")
+ 
  sh_colnames <- c("Sample_ID", "Index_Plate_Well", "Index_Plate", 
  								 "I7_Index_ID", "index", "I5_Index_ID", "index2", 
  								 "Sample_Project", "Description")
@@ -134,7 +135,9 @@ ui <- fluidPage(
 			"3. Add run details and get samplesheet",
 			tags$h4("Fill in optional fileds"),
 			tags$h6(
-				"For running bcl2fastq these fields are optional, but may be needed if the sample sheet is needed for other software"
+				"For running bcl2fastq these fields are optional, but may be needed if the sample sheet is needed for other software.
+				The 'Read1' and 'Read2' fields are required only if a sample sheet file is used to set up a sequencing run through the MiSeq Control Software."
+				
 			),
 			# inputs for Header
 			fluidRow(column(
@@ -147,14 +150,19 @@ ui <- fluidPage(
 				3,
 				textInput("description", "Description")
 			), column(
-				3,
-				# inputs for Settings
-				prettyCheckboxGroup("trimming", "Adapter trimming", 
-										choices = c("Adapter", "AdapterRead2"), 
-										inline = TRUE, status = "info", fill = TRUE)
+				1,
+				numericInput("read1", label = "Read1", min = 51, max = 301, step = 1, value = NULL, width = "100%")
+			), column(
+				1,
+				numericInput("read2", label = "Read2", min = 51, max = 301, step = 1, value = NULL, width = "100%")
 			)),
-			
-
+			fluidRow(column(
+				3,
+				prettyCheckbox("trimming", "Adapter trimming", 
+											 value = FALSE, 
+											 status = "info", fill = TRUE)
+			)),
+			tags$hr(),
 			#------------------------------------------------------
 			tags$h4("Download samplesheet or sample-index mapping"),
 			tags$h6(
@@ -192,7 +200,8 @@ server <- function(input, output, session) {
 	sh_values <- reactiveValues(date = NULL,
 															investigator = NULL,
 															description = NULL,
-															trimming = NULL, 
+															trimm_seq1 = NULL,
+															trimm_seq2 = NULL,
 															read1 = NULL, 
 															read2 = NULL)
 	# ------------------------------------------------------------- read in pasted data
@@ -301,14 +310,32 @@ server <- function(input, output, session) {
 			}
 	})
 	
-	#-------------------------------observer to update sh_values
+	#---------------------------------------------------------observer to update sh_values
 	observe({
 		sh_values$date <- input$date
 		sh_values$investigator <- input$investigator
 		sh_values$description <- input$description
+		
+		# assign trimm_seq depending on kit selected, and depending if input$trimming is selected
+		if( (input$indexkit == "idt-udp" | input$indexkit == "idt-udp-ver2") & input$trimming ) {
+			sh_values$trimm_seq1 <- "CTGTCTCTTATACACATCT"
+		
+		# neb and zymo have TruSeq adapters
+		} else if( (input$indexkit == "neb" | input$indexkit == "zymo") | input$trimming ) {
+			sh_values$trimm_seq1 <- "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
+			sh_values$trimm_seq2 <- "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+		}
+		
+		if( !is.na(input$read1) ) {
+			sh_values$read1 <- input$read1
+		}
+		if( !is.na(input$read2) ) {
+			sh_values$read2 <- input$read2
+		}
+		
 	})
 		
-	# ------------------------------ RENDER OUTPUTS
+	# ------------------------------ ---------------------------RENDER OUTPUTS
 	output$csvread <- function(){
 		validate(
 			need(values$csv_data, message = "The pasted data must have 3 columns (any separator) and at least 1 new line. No empty lines are allowed.")
@@ -329,7 +356,7 @@ server <- function(input, output, session) {
 			dups <- joindata()[ , "index_check"]
 			dups_indexes <- which( duplicated(dups) | duplicated(dups, fromLast = T) )
 			
-			knitr::kable( joindata(), "html") %>% 
+			knitr::kable( joindata()[, ..sh_colnames], "html") %>% # for ..sh_colnames --> Perhaps you intended DT[, ..sh_colnames]. This difference to data.frame is deliberate and explained in FAQ 1.1.
 				kable_styling(fixed_thead = TRUE, 
 											bootstrap_options = c("hover")) %>%
 				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
@@ -362,19 +389,30 @@ server <- function(input, output, session) {
 										 list(sh_values$date, sh_values$investigator, sh_values$description, "GenerateFASTQ"), 
 										 MoreArgs = list(sep = ",")
 										 ),
+							"[SoftwareInfo]",
+							paste("name", "samplesheet-generator", sep = ","),
+							paste("git_commit", "ec6060c", sep = ","), # this app must be under git control!
+							paste("executed_on", Sys.time(), sep = ","),
+							paste("author", "Angel Angelov", sep = ","),
+							
 							"[Settings]",
+							paste("Adapter", sh_values$trimm_seq1, sep = ","),
+							paste("AdapterRead2", sh_values$trimm_seq2, sep = ","),
+							
 							"[Reads]",  #  only required when using a sample sheet file to set up a sequencing run through the MiSeq® Control Software.
-							sh_values$read1, sh_values$read2,
+							sh_values$read1, 
+							sh_values$read2,
 							"[Data]"
 			)
 			
 			write(sh, file = file)
-			write.table(joindata(), 
+			write.table(joindata()[, ..sh_colnames], 
 									file = file, 
 									append = TRUE, 
 									sep = ",",
 									quote = FALSE, 
-									col.names = TRUE)
+									col.names = TRUE, 
+									row.names = FALSE) # important!
 			#nx_report_error("Error!", "This feature is still in development") 
 			}
 		
