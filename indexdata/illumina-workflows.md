@@ -1,18 +1,67 @@
-# Workflows and machines
+## Workflows and machines
 
->The forward strand workflow is performed on the NovaSeq 6000, MiSeq, HiSeq 2000/2500, NextSeq 2000.
->The reverse complement workflow is performed on the iSeq, MiniSeq, NextSeq 500, HiSeq 3000/4000/X.
+- The **forward strand** workflow is performed on the NovaSeq 6000, MiSeq, HiSeq 2000/2500, NextSeq 2000.
+- The **reverse complement** workflow is performed on the iSeq, MiniSeq, NextSeq 500, HiSeq 3000/4000/X.
 
-[link to source](https://emea.support.illumina.com/content/dam/illumina-support/documents/documentation/system_documentation/miseq/indexed-sequencing-overview-guide-15057455-06.pdf)
+[Link to source](https://emea.support.illumina.com/content/dam/illumina-support/documents/documentation/system_documentation/miseq/indexed-sequencing-overview-guide-15057455-06.pdf)
 
 *In this repository, and in the indexcsv.csv file, "miseq" means forward strand workflow and "nextseq" means reverse strand workflow.*
 
-# Trimming T-overhang options
-Trimming T-overhang options for the Illumina Stranded mRNA and Illumina Stranded Total RNA workflows
->Users can add the following settings to the [Settings] section of the SampleSheet.csv file. These settings configure the FASTQ generation to start from the second cycle, skipping the T overhang.
+## Adapter trimming sequences
+[Link to source](https://emea.support.illumina.com/bulletins/2016/12/what-sequences-do-i-use-for-adapter-trimming.html)
 
+- TruSeq single index- and TruSeq CD index-based kits:
+
+```bash
+Adapter, AGATCGGAAGAGCACACGTCTGAACTCCAGTCA
+AdapterRead2, AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
+```
+
+***
+
+
+- AmpliSeq for Illumina; 
+- Illumina DNA Prep (M) Tagmentation (previously Nextera DNA Flex); 
+- Illumina DNA Prep with Enrichment (S) Tagmentation (previously Nextera Flex for Enrichment);
+- Nextera DNA; 
+- Nextera XT; 
+- Nextera Enrichment; 
+- Nextera Rapid Capture Enrichment; 
+- TruSight Enrichment; 
+- TruSight Rapid Capture Enrichment; 
+- TruSight HLA; 
+- Illumina Stranded mRNA Prep, Ligation; 
+- Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus; 
+- Illumina RNA Prep with Enrichment, Ligation
+
+```bash
+Adapter, CTGTCTCTTATACACATCT
+```
+
+***
+
+- Illumina DNA PCR-Free Prep, Tagmentation
+
+```bash
+Adapter, CTGTCTCTTATACACATCT+ATGTGTATAAGAGACA
+```
+
+
+
+## Trimming T-overhang options
+Trimming T-overhang options for the 
+
+- Illumina Stranded mRNA and 
+- Illumina Stranded Total RNA workflows
+
+Add the following settings to the [Settings] section of the SampleSheet.csv file. 
+These settings configure the FASTQ generation to start from the second cycle, skipping the T overhang.
+
+```bash
 [Settings]
 Read1StartFromCycle,2
 Read2StartFromCycle,2
+```
 
-https://emea.support.illumina.com/bulletins/2020/06/trimming-t-overhang-options-for-the-illumina-rna-library-prep-wo.html?langsel=/de/
+[Link to source](https://emea.support.illumina.com/bulletins/2020/06/trimming-t-overhang-options-for-the-illumina-rna-library-prep-wo.html?langsel=/de/)
+

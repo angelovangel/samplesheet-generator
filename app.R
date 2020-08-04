@@ -149,9 +149,9 @@ ui <- fluidPage(
 			), column(
 				3,
 				# inputs for Settings
-				pickerInput("trimming", "Adapter trimming", 
+				prettyCheckboxGroup("trimming", "Adapter trimming", 
 										choices = c("Adapter", "AdapterRead2"), 
-										multiple = TRUE)
+										inline = TRUE, status = "info", fill = TRUE)
 			)),
 			
 
@@ -192,7 +192,9 @@ server <- function(input, output, session) {
 	sh_values <- reactiveValues(date = NULL,
 															investigator = NULL,
 															description = NULL,
-															trimming = NULL)
+															trimming = NULL, 
+															read1 = NULL, 
+															read2 = NULL)
 	# ------------------------------------------------------------- read in pasted data
 	observeEvent(input$read, {
 		if(input$csv != '') {
@@ -356,9 +358,13 @@ server <- function(input, output, session) {
 			# construct sample sheet here
 			sh <- c("[Header]", 
 							mapply(paste, 
-										 list("Date", "Investigator", "Description"), 
-										 list(sh_values$date, sh_values$investigator, sh_values$description), MoreArgs = list(sep = ",")
+										 list("Date", "Investigator", "Description", "Workflow"), 
+										 list(sh_values$date, sh_values$investigator, sh_values$description, "GenerateFASTQ"), 
+										 MoreArgs = list(sep = ",")
 										 ),
+							"[Settings]",
+							"[Reads]",  #  only required when using a sample sheet file to set up a sequencing run through the MiSeq® Control Software.
+							sh_values$read1, sh_values$read2,
 							"[Data]"
 			)
 			
