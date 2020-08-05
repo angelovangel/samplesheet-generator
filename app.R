@@ -4,7 +4,7 @@ library(shinydashboard)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyjs)
-library(shinypop)
+library(shinypop) # remotes::install_github("dreamRs/shinypop")
 library(data.table)
 library(dplyr)
 library(stringr)
@@ -244,7 +244,8 @@ server <- function(input, output, session) {
 		
 		# values$csv_data <- values$csv_data %>% mutate(well_new = str_replace(well, "0", "0?"))
 		values$csv_data %>% 
-			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate"))
+			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate")) %>%
+			as.data.table() # make sure it is not something else after join
 			
 	})
 	#------------------------------------------------------------ header of sample sheet
