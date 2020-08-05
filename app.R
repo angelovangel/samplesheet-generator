@@ -335,11 +335,16 @@ server <- function(input, output, session) {
 	
 	# -------------------------------observer to update set input based on kit selected
 	# zymo has one set only
-	observeEvent(input$indexkit, {
+	observe({
 		if(input$indexkit == "zymo") {
 			updatePickerInput(session = session, 
 												inputId = "set", 
 												choices = c("A"), 
+												selected = "A")
+		} else {
+			updatePickerInput(session = session,
+												inputId = "set",
+												choices = c("A", "B", "C", "D"),
 												selected = "A")
 			}
 	})
