@@ -1,7 +1,5 @@
 # Copy app to DO
 
-name: SCP Files
-uses: appleboy/scp-action@v0.0.1
 name: scp files
 on: [push]
 jobs:
