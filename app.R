@@ -103,7 +103,8 @@ ui <- fluidPage(
 						choices = indexkitslist,
 						multiple = FALSE,
 						width = "100%",
-						label = "Select Index Kit"
+						label = "Select Index Kit", 
+						inline = FALSE
 					)
 				),
 				column(
@@ -114,7 +115,8 @@ ui <- fluidPage(
 						selected = "A",
 						multiple = TRUE,
 						width = "100%",
-						label = "Select Set(s)"
+						label = "Select Set(s)", 
+						inline = FALSE
 					)
 				),
 				column(
@@ -124,7 +126,8 @@ ui <- fluidPage(
 						choices = machines,
 						multiple = FALSE,
 						width = "80%",
-						label = "Select machine"
+						label = "Select machine", 
+						inline = FALSE
 					)
 				)
 			),
