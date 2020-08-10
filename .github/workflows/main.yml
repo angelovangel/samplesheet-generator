@@ -16,5 +16,5 @@ jobs:
         username: ${{ secrets.USERNAME }}
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
-        source: "test-a.txt"
-        target: "/srv/shiny-server/"
+        source: "app.R,indexdata/indexcsv.csv"
+        target: "/srv/shiny-server/samplesheet/"
