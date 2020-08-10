@@ -21,7 +21,8 @@ commit_hash <- system("git rev-parse --short HEAD", intern = TRUE)
 indexkitslist <- list(
 	"Illumina" = list(
 		"IDT for Illumina DNA UD Indexes, Tagmentation" = "idt-udp",
-		"IDT for Illumina DNA/RNA UD Indexes, Tagmentation, ver2" = "idt-udp-ver2"),
+		"IDT for Illumina DNA/RNA UD Indexes, Tagmentation, ver2" = "idt-udp-ver2",
+		"Nextera DNA CD Indexes (96 Indexes, 96 Samples)" = "nextera-dna-cd96"),
 	"NEB" = list(
 		"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs)" = "neb"),
 	"Zymo" = list(
@@ -318,6 +319,10 @@ server <- function(input, output, session) {
 									 					 "IDT for Illumina DNA/RNA UD Indexes, Tagmentation, Sets A-D ver2, Cat.# 20027213, 20027214, 20042666, 20742667", 
 									 					 target = "_blank")),
 									 	tags$li(
+									 		tags$a(href = "https://emea.support.illumina.com/bulletins/2020/06/illumina-library-prep-kits-and-associated-index-kits.html", 
+									 					 "Nextera DNA CD Indexes (96 Indexes, 96 Samples), Cat.# 20018708", 
+									 					 target = "_blank")),
+									 	tags$li(
 									 		tags$a(
 									 			href = "https://international.neb.com/tools-and-resources/selection-charts/nebnext-multiplex-oligos-selection-chart",
 									 			"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs), Sets 1-4, Cat.# E6440, E6442, E6444, E6446", 
@@ -334,9 +339,9 @@ server <- function(input, output, session) {
 	})
 	
 	# -------------------------------observer to update set input based on kit selected
-	# zymo has one set only
+	# for kits with one set only
 	observe({
-		if(input$indexkit == "zymo") {
+		if(input$indexkit == "zymo" | input$indexkit == "nextera-dna-cd96") {
 			updatePickerInput(session = session, 
 												inputId = "set", 
 												choices = c("A"), 
@@ -357,7 +362,7 @@ server <- function(input, output, session) {
 		sh_values$description <- input$description
 		
 		# assign trimm_seq depending on kit selected, and depending if input$trimming is selected
-		if( (input$indexkit == "idt-udp" | input$indexkit == "idt-udp-ver2") & input$trimming ) {
+		if( (input$indexkit == "idt-udp" | input$indexkit == "idt-udp-ver2" | input$indexkit == "nextera-dna-cd96") & input$trimming ) {
 			sh_values$trimm_seq1 <- "CTGTCTCTTATACACATCT"
 		
 		# neb and zymo have TruSeq adapters
