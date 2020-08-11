@@ -3,9 +3,9 @@
   env:
     LASTSSH: "git pull"
   with:
-    host: ${{ secrets.DC_HOST }}
-    user: ${{ secrets.DC_USER }}
-    pass: ${{ secrets.DC_PASS }}
+    host: ${{ secrets.HOST }}
+    user: ${{ secrets.USERNAME }}
+    pass: ${{ secrets.PASSWORD }}
     last_ssh: |
       echo $LASTSSH 
       ls -la
