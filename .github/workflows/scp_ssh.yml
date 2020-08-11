@@ -1,11 +1,18 @@
-- name: scp ssh pipelines
-  uses: cross-the-world/ssh-scp-ssh-pipelines@latest
-  env:
-    LASTSSH: "git pull"
-  with:
-    host: ${{ secrets.HOST }}
-    user: ${{ secrets.USERNAME }}
-    pass: ${{ secrets.PASSWORD }}
-    last_ssh: |
-      echo $LASTSSH 
-      ls -la
+name: ssh
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: scp ssh pipelines
+        uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+        env:
+          LASTSSH: "git pull"
+        with:
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USERNAME }}
+          pass: ${{ secrets.PASSWORD }}
+          last_ssh: |
+            echo $LASTSSH 
+            ls -la
