@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ls -a via OPEN SSH Private Key
+      - name: git pull on DO via OPEN SSH Private Key
         uses: garygrossgarten/github-action-ssh@release
         with:
-          command: ls -a
+          command: cd /srv/shiny-server/samplesheet/ && git pull
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: aangelo
