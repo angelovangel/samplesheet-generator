@@ -226,9 +226,15 @@ server <- function(input, output, session) {
 																			 Index_Plate == 3 | Index_Plate == "c" ~ "C",
 																			 Index_Plate == 4 | Index_Plate == "d" ~ "D",
 																			 TRUE ~ as.character(Index_Plate)
-																			 )
-							 ) 
+																			 ),
+							 Index_Plate_Well = ifelse(str_length(Index_Plate_Well) == 2, 
+							 													yes = str_replace(Index_Plate_Well, "([1-9])", "0\\1"), 
+							 													no = Index_Plate_Well)
+							 )
 													)
+		# solution to insert leading zeros for 1-9
+		# ifelse(str_length(chr) == 2, yes = str_replace(chr, "([1-9])", "0\\1"), no = chr) # \1 is the capture group
+		
 		values$samples_pasted <- nrow(values$csv_data)
 		
 		} else {
@@ -247,7 +253,6 @@ server <- function(input, output, session) {
 	joindata <- reactive({
 		validate(need(values$csv_data, "No samples data pasted"))
 		
-		# values$csv_data <- values$csv_data %>% mutate(well_new = str_replace(well, "0", "0?"))
 		values$csv_data %>% 
 			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate")) %>%
 			as.data.table() # make sure it is not something else after join
