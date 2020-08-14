@@ -32,9 +32,9 @@ indexkitslist <- list(
 
 machines <- list(
 	"forward strand workflow" = list(
-		"MiSeq" = "miseq", "NextSeq 2000" = "miseq", "HiSeq 2000/2500" = "miseq", "NovaSeq" = "miseq"),
+		"MiSeq" = "miseq", "NextSeq 2000" = "miseq", "HiSeq 2000/2500" = "miseq", "NovaSeq v1.0 reagents" = "miseq"),
 	"reverse complement workflow"= list(
-		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq 500/550" = "nextseq", "HiSeq 3000/4000/X" = "nextseq")
+		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq 500/550" = "nextseq", "HiSeq 3000/4000/X" = "nextseq", "NovaSeq v1.5 reagents")
 )
 # load data and make it available for all sessions
  indexcsv <- fread("indexdata/indexcsv.csv")

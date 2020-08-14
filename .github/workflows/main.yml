@@ -1,20 +1,19 @@
-# Copy app to DO
+# Run command via ssh
 
-name: scp files
-on: [push]
+name: Command via SSH
+
+on: push
+
 jobs:
-
   build:
-    name: Build
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@master
-    - name: copy file via ssh password
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
-        port: ${{ secrets.PORT }}
-        source: "app.R,indexdata/indexcsv.csv"
-        target: "/srv/shiny-server/samplesheet/"
+      - name: ls -a via OPEN SSH Private Key
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          command: ls -a
+          host: ${{ secrets.HOST }}
+          port: ${{ secrets.PORT }}
+          username: aangelo
+          password: ${{ secrets.PASSWORD }}
