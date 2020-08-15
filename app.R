@@ -34,7 +34,7 @@ machines <- list(
 	"forward strand workflow" = list(
 		"MiSeq" = "miseq", "NextSeq 2000" = "miseq", "HiSeq 2000/2500" = "miseq", "NovaSeq v1.0 reagents" = "miseq"),
 	"reverse complement workflow"= list(
-		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq 500/550" = "nextseq", "HiSeq 3000/4000/X" = "nextseq", "NovaSeq v1.5 reagents")
+		"iSeq" = "nextseq", "MiniSeq" = "nextseq", "NextSeq 500/550" = "nextseq", "HiSeq 3000/4000/X" = "nextseq", "NovaSeq v1.5 reagents" = "nextseq")
 )
 # load data and make it available for all sessions
  indexcsv <- fread("indexdata/indexcsv.csv")
@@ -433,6 +433,7 @@ server <- function(input, output, session) {
 			row_spec( which(
 				!str_detect(values$csv_data$Index_Plate_Well, "[A-H][0-1][0-2]")
 				), color = "white", background = "#F1C40F " ) %>%
+			# invalid sample id names
 			row_spec( which(
 				!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
 				), color = "white", background = "#F1C40F ")
@@ -447,7 +448,11 @@ server <- function(input, output, session) {
 			kableExtra::kable( joindata()[, ..sh_colnames], "html") %>% # for ..sh_colnames --> Perhaps you intended DT[, ..sh_colnames]. This difference to data.frame is deliberate and explained in FAQ 1.1.
 				kable_styling(fixed_thead = TRUE, 
 											bootstrap_options = c("hover")) %>%
-				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
+				row_spec(c(dups_indexes), color = "white", background = "#D7261E") %>%
+				# invalid sample id names
+				row_spec( which(
+					!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
+				), color = "white", background = "#F1C40F ")
 			
 		}
 		#---------------------------------------------------------preview sample sheet header
