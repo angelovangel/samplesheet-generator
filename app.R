@@ -43,6 +43,7 @@ machines <- list(
  								 "I7_Index_ID", "index", "I5_Index_ID", "index2", 
  								 "Sample_Project", "Description")
 
+demo_data <- "#Demo data, delete it and paste yours#\nsample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB"
 #####
 ui <- fluidPage(
 	#tags$head(tags$style(HTML(".small-box {height: 25px}"))),
@@ -77,16 +78,14 @@ ui <- fluidPage(
 			"1. Paste sample-well",
 			tags$h4("Paste sample-well-set mapping and press the Read button"),
 			tags$h5(
-				"You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'. Example data is already supplied. "
+				"You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'"
 			),
 			fluidRow(column(
 				6,
 				textAreaInput(
 					"csv",
-					value = "sample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB",
+					value = demo_data,
 					label = "",
-					#value = "sample01; A01; setA",
-					#width = '400px',
 					height = '300px'
 				)
 			),
@@ -246,7 +245,7 @@ server <- function(input, output, session) {
 		#as only alphanumeric (ASCII codes 48-57, 65- 90, and 97-122), 
 		#dash (ASCII code 45), and underscore (ASCII code 95) are permitted. 
 		#The Sample_ID length is limited to 100 characters maximum
-		values$sample_id_valid <- str_detect(values$csv_data$Sample_ID, "^[0-9A-Za-z]{2,100}$")
+		values$sample_id_valid <- str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
 		
 		} else {
 			nx_notify_error("Paste something first!")
@@ -435,7 +434,7 @@ server <- function(input, output, session) {
 				!str_detect(values$csv_data$Index_Plate_Well, "[A-H][0-1][0-2]")
 				), color = "white", background = "#F1C40F " ) %>%
 			row_spec( which(
-				!str_detect(values$csv_data$Sample_ID, "^[0-9A-Za-z]{2,100}$")
+				!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
 				), color = "white", background = "#F1C40F ")
 	}
 	
