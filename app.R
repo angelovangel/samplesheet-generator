@@ -48,7 +48,7 @@ ui <- fluidPage(
 	#tags$head(tags$style(HTML(".small-box {height: 25px}"))),
 	
 	useShinyjs(),
-	use_notiflix_notify(position = "right-bottom", width = "380px"),
+	use_notiflix_notify(position = "right-bottom", width = "480px", timeout = 4000),
 	use_notiflix_report(cssAnimationDuration = 100, width = "100%", messageMaxLength = 1800),
 	#use_notie(), 
 	
@@ -204,7 +204,9 @@ server <- function(input, output, session) {
 	values <- reactiveValues(csv_data = NULL, 
 													 samples_pasted = 0, # number of samples in pasted data
 													 samples_matched = 0, # number of samples with matched index well
-													 samples_clashed = 0) # tracks if indexes are unique in sample sheet
+													 samples_clashed = 0, # tracks if indexes are unique in sample sheet
+													 sample_id_valid = TRUE,
+													 index_well_valid = TRUE)
 	# these are the reactives for the sample sheet sections apart from [DATA]
 	sh_values <- reactiveValues(date = NULL,
 															investigator = NULL,
@@ -236,6 +238,15 @@ server <- function(input, output, session) {
 		# ifelse(str_length(chr) == 2, yes = str_replace(chr, "([1-9])", "0\\1"), no = chr) # \1 is the capture group
 		
 		values$samples_pasted <- nrow(values$csv_data)
+		
+		# check for valid index plate well names, check for valid Sample_ID names
+		# now this is a logical vector, to store positions of rows that do match pattern
+		values$index_well_valid <-  str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-2]$") 
+		# The field for the Sample_ID column has special character restrictions 
+		#as only alphanumeric (ASCII codes 48-57, 65- 90, and 97-122), 
+		#dash (ASCII code 45), and underscore (ASCII code 95) are permitted. 
+		#The Sample_ID length is limited to 100 characters maximum
+		values$sample_id_valid <- str_detect(values$csv_data$Sample_ID, "^[0-9A-Za-z]{2,100}$")
 		
 		} else {
 			nx_notify_error("Paste something first!")
@@ -313,7 +324,19 @@ server <- function(input, output, session) {
 		}
 	})
 	
-	# various OBSERVERS
+	# separate observer for valid index well and sample id names
+	observe({
+		if( !all(values$index_well_valid ) ) {
+			nx_notify_warning("Index_Plate_Well name is not valid! Only A01 to H12 are accepted")
+			
+		} 
+		if( !all(values$sample_id_valid) ){
+			nx_notify_warning("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
+			
+		}
+	})
+		
+	# various other OBSERVERS
 	#-------------------------------- list supported kits
 	observeEvent(input$supportedkits, {
 		nx_report_info("Supported indexing kits", 
@@ -406,7 +429,14 @@ server <- function(input, output, session) {
 		kableExtra::kable(values$csv_data) %>%
 			kable_styling(fixed_thead = TRUE,
 										bootstrap_options = c("hover")) %>%
-			row_spec(c(dups_indexes), color = "white", background = "#D7261E")
+			row_spec(c(dups_indexes), color = "white", background = "#D7261E") %>%
+			# invalid index well names
+			row_spec( which(
+				!str_detect(values$csv_data$Index_Plate_Well, "[A-H][0-1][0-2]")
+				), color = "white", background = "#F1C40F " ) %>%
+			row_spec( which(
+				!str_detect(values$csv_data$Sample_ID, "^[0-9A-Za-z]{2,100}$")
+				), color = "white", background = "#F1C40F ")
 	}
 	
 		#---------------------------------------------------------preview data
