@@ -9,7 +9,6 @@ library(shinypop) # remotes::install_github("dreamRs/shinypop")
 library(data.table)
 library(dplyr)
 library(stringr)
-#library(fuzzyjoin)
 library(kableExtra)
 
 #### 
@@ -64,7 +63,7 @@ ui <- fluidPage(
 	tags$caption(
 	#	),
 	#column(2, 
-				 actionBttn("supportedkits", label = "Supported kits", size = "xs")
+				 actionBttn("supportedkits", label = "Supported kits", size = "m")
 	)),
 		column(10, 
 					 valueBoxOutput("samples_pasted", width = 4),
@@ -116,7 +115,7 @@ ui <- fluidPage(
 						"set",
 						choices = c("A", "B", "C", "D"),
 						selected = "A",
-						multiple = TRUE,
+						multiple = TRUE, 
 						width = "100%",
 						label = "Select Set(s)", 
 						inline = FALSE
@@ -233,7 +232,7 @@ server <- function(input, output, session) {
 																			 ),
 							 Index_Plate_Well = ifelse(str_length(Index_Plate_Well) == 2, 
 							 													yes = str_replace(Index_Plate_Well, "([1-9])", "0\\1"), 
-							 													no = Index_Plate_Well)
+							 													no = Index_Plate_Well) %>% toupper()
 							 )
 													)
 		# solution to insert leading zeros for 1-9
@@ -324,6 +323,7 @@ server <- function(input, output, session) {
 			values$samples_matched <- nrow( joindata() )
 			values$samples_clashed <- 0
 		}
+		
 	})
 	
 	# separate observer for valid index well and sample id names
@@ -333,7 +333,7 @@ server <- function(input, output, session) {
 			
 		} 
 		if( !all(values$sample_id_valid) ){
-			nx_notify_warning("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
+			nx_notify_error("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
 			
 		}
 	})
@@ -435,11 +435,11 @@ server <- function(input, output, session) {
 			# invalid index well names
 			row_spec( which(
 				!str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-2]$")
-				), color = "white", background = "#F1C40F " ) %>%
+				), color = "white", background = "#F1C40F" ) %>%
 			# invalid sample id names
 			row_spec( which(
 				!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
-				), color = "white", background = "#F1C40F ")
+				), color = "white", background = "#D7261E")
 	}
 	
 		#---------------------------------------------------------preview data
@@ -455,7 +455,7 @@ server <- function(input, output, session) {
 				# invalid sample id names
 				row_spec( which(
 					!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
-				), color = "white", background = "#F1C40F ")
+				), color = "white", background = "#D7261E")
 			
 		}
 		#---------------------------------------------------------preview sample sheet header
@@ -479,6 +479,7 @@ server <- function(input, output, session) {
 		output$samples_matched <- renderValueBox({
 			color <- ifelse(values$samples_matched == values$samples_pasted && values$samples_matched != 0, 
 											"green", "yellow")
+			validate(need(indexdata(), message = "Set is required!"))
 			valueBox(values$samples_matched, "samples with matched indexes", color = color)
 		})
 		
