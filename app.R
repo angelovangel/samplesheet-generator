@@ -46,7 +46,10 @@ machines <- list(
 demo_data <- "#Demo data, delete it and paste yours#\nsample01\tA01\tA\nsample02\tA02\tA\nsample03\tA01\tB"
 #####
 ui <- fluidPage(
-	#tags$head(tags$style(HTML(".small-box {height: 25px}"))),
+	
+	# include css needed for shinydashboard to work. I am NOT putting everything in dashboardPage and they are NOT loaded
+	includeCSS("css/AdminLTE.css"),
+	includeCSS("css/shinydashboard.css"),
 	
 	useShinyjs(),
 	use_notiflix_notify(position = "right-bottom", width = "480px", timeout = 4000),
@@ -307,7 +310,7 @@ server <- function(input, output, session) {
 			values$samples_matched <- nrow( joindata() )
 			values$samples_clashed <- length(joindata()$index_check) - length(unique(joindata()$index_check))
 				
-			nx_report_error("Index clash!", message = "Two or more samples (highlighted in red) have the same indexes! Please check your input.")
+			#nx_report_error("Index clash!", message = "Two or more samples (highlighted in red) have the same indexes! Please check your input.")
 		
 		# i7 or i5 is not unique, i.e. CD indexing schemes
 		} else if( length(unique(joindata()$index)) < length(joindata()$index) ) {
@@ -431,7 +434,7 @@ server <- function(input, output, session) {
 			row_spec(c(dups_indexes), color = "white", background = "#D7261E") %>%
 			# invalid index well names
 			row_spec( which(
-				!str_detect(values$csv_data$Index_Plate_Well, "[A-H][0-1][0-2]")
+				!str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-2]$")
 				), color = "white", background = "#F1C40F " ) %>%
 			# invalid sample id names
 			row_spec( which(
@@ -469,15 +472,19 @@ server <- function(input, output, session) {
 		
 		#---------------------------------------------------------value boxes renders
 		output$samples_pasted <- renderValueBox({
-			valueBox(values$samples_pasted, "samples pasted")
+			color <- ifelse(values$samples_pasted > 0, "green", "yellow")
+			valueBox(values$samples_pasted, "samples pasted", color = color)
 		})
 		
 		output$samples_matched <- renderValueBox({
-			valueBox(values$samples_matched, "samples with matched indexes")
+			color <- ifelse(values$samples_matched == values$samples_pasted && values$samples_matched != 0, 
+											"green", "yellow")
+			valueBox(values$samples_matched, "samples with matched indexes", color = color)
 		})
 		
 		output$samples_clashed <- renderValueBox({
-			valueBox(values$samples_clashed, "samples with clash indexes")
+			color <- ifelse(values$samples_clashed == 0, "green", "red")
+			valueBox(values$samples_clashed, "samples with clash indexes", color = color)
 		})
 	#}
 	#})
