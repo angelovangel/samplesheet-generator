@@ -63,7 +63,7 @@ ui <- fluidPage(
 	tags$caption(
 	#	),
 	#column(2, 
-				 actionBttn("supportedkits", label = "Supported kits", size = "m")
+				 actionBttn("supportedkits", label = "Supported kits", size = "lg", style = "fill", color = "success")
 	)),
 		column(10, 
 					 valueBoxOutput("samples_pasted", width = 4),
@@ -75,6 +75,7 @@ ui <- fluidPage(
 	tags$hr(),
 	
 	navlistPanel(
+		well = F, fluid = F,
 		widths = c(2,10),
 		tabPanel(
 			"1. Paste sample-well",
@@ -93,7 +94,7 @@ ui <- fluidPage(
 			),
 			column(6,
 						 tableOutput("csvread"))),
-			actionButton("read", "Read")
+			actionBttn("read", "Read data", style = "fill", color = "success")
 		), 
 		tabPanel(
 			"2. Select index kit and machine",
@@ -180,14 +181,14 @@ ui <- fluidPage(
 			),
 			downloadBttn(
 				"download1",
-				style = "minimal",
-				label = "Complete sample sheet",
+				style = "fill", color = "success",
+				label = "Download sample sheet",
 				size = "sm"
 			),
 			downloadBttn(
 				"download2",
-				style = "minimal",
-				label = "Sample-index mapping",
+				style = "fill", color = "success",
+				label = "Download sample-index mapping",
 				size = "sm"
 			),
 			# preview complete sample sheet
