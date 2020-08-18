@@ -63,12 +63,14 @@ ui <- fluidPage(
 	tags$caption(
 	#	),
 	#column(2, 
-				 actionBttn("supportedkits", label = "Supported kits", size = "lg", style = "fill", color = "success")
+				 actionBttn("supportedkits", label = "Supported kits", 
+				 					 size = "lg", style = "fill", color = "default")
 	)),
 		column(10, 
-					 valueBoxOutput("samples_pasted", width = 4),
-					 valueBoxOutput("samples_matched", width = 4),
-					 valueBoxOutput("samples_clashed", width = 4)
+					 valueBoxOutput("samples_pasted", width = 3),
+					 valueBoxOutput("samples_matched", width = 3),
+					 valueBoxOutput("samples_valid", width = 3),
+					 valueBoxOutput("samples_clashed", width = 3)
 					 )
 	),
 	#tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
@@ -94,7 +96,7 @@ ui <- fluidPage(
 			),
 			column(6,
 						 tableOutput("csvread"))),
-			actionBttn("read", "Read data", style = "fill", color = "success")
+			actionBttn("read", "Read data", style = "fill", color = "default")
 		), 
 		tabPanel(
 			"2. Select index kit and machine",
@@ -181,13 +183,13 @@ ui <- fluidPage(
 			),
 			downloadBttn(
 				"download1",
-				style = "fill", color = "success",
+				style = "fill", color = "default",
 				label = "Download sample sheet",
 				size = "sm"
 			),
 			downloadBttn(
 				"download2",
-				style = "fill", color = "success",
+				style = "fill", color = "default",
 				label = "Download sample-index mapping",
 				size = "sm"
 			),
@@ -206,6 +208,7 @@ server <- function(input, output, session) {
 	values <- reactiveValues(csv_data = NULL, 
 													 samples_pasted = 0, # number of samples in pasted data
 													 samples_matched = 0, # number of samples with matched index well
+													 samples_valid = 0, # matched with valid sample_id
 													 samples_clashed = 0, # tracks if indexes are unique in sample sheet
 													 sample_id_valid = TRUE,
 													 index_well_valid = TRUE)
@@ -331,11 +334,13 @@ server <- function(input, output, session) {
 	observe({
 		if( !all(values$index_well_valid ) ) {
 			nx_notify_warning("Index_Plate_Well name is not valid! Only A01 to H12 are accepted")
-			
 		} 
+		
 		if( !all(values$sample_id_valid) ){
 			nx_notify_error("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
-			
+			values$samples_valid <- sum( values$sample_id_valid )
+		} else {
+			values$samples_valid <- values$samples_matched
 		}
 	})
 		
@@ -481,12 +486,20 @@ server <- function(input, output, session) {
 			color <- ifelse(values$samples_matched == values$samples_pasted && values$samples_matched != 0, 
 											"green", "yellow")
 			validate(need(indexdata(), message = "Set is required!"))
-			valueBox(values$samples_matched, "samples with matched indexes", color = color)
+			valueBox(values$samples_matched, "samples with matched index", color = color)
+		})
+		
+		output$samples_valid <- renderValueBox({
+			color <- ifelse(values$samples_pasted == values$samples_valid && values$samples_valid != 0, 
+											"green", "yellow")
+			validate(need(indexdata(), message = "Set is required!"))
+			valueBox(values$samples_valid, "samples with valid names", color = color)
 		})
 		
 		output$samples_clashed <- renderValueBox({
 			color <- ifelse(values$samples_clashed == 0, "green", "red")
-			valueBox(values$samples_clashed, "samples with clash indexes", color = color)
+			validate(need(indexdata(), message = "Set is required!"))
+			valueBox(values$samples_clashed, "samples with clash index", color = color)
 		})
 	#}
 	#})
