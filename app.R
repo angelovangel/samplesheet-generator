@@ -67,10 +67,10 @@ ui <- fluidPage(
 				 					 size = "lg", style = "fill", color = "default")
 	)),
 		column(10, 
-					 valueBoxOutput("samples_pasted", width = 3),
-					 valueBoxOutput("samples_matched", width = 3),
-					 valueBoxOutput("samples_valid", width = 3),
-					 valueBoxOutput("samples_clashed", width = 3)
+					 valueBoxOutput("samples_pasted", width = 4),
+					 #valueBoxOutput("samples_matched", width = 3),
+					 valueBoxOutput("samples_valid", width = 4),
+					 valueBoxOutput("samples_clashed", width = 4)
 					 )
 	),
 	#tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
@@ -211,6 +211,7 @@ server <- function(input, output, session) {
 													 samples_valid = 0, # matched with valid sample_id
 													 samples_clashed = 0, # tracks if indexes are unique in sample sheet
 													 sample_id_valid = TRUE,
+													 sample_id_duplicate = TRUE,
 													 index_well_valid = TRUE)
 	# these are the reactives for the sample sheet sections apart from [DATA]
 	sh_values <- reactiveValues(date = NULL,
@@ -246,13 +247,16 @@ server <- function(input, output, session) {
 		
 		# check for valid index plate well names, check for valid Sample_ID names
 		# now this is a logical vector, to store positions of rows that do match pattern
-		values$index_well_valid <-  str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-2]$") 
+		values$index_well_valid <-  str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-9]$") 
 		# The field for the Sample_ID column has special character restrictions 
 		#as only alphanumeric (ASCII codes 48-57, 65- 90, and 97-122), 
 		#dash (ASCII code 45), and underscore (ASCII code 95) are permitted. 
 		#The Sample_ID length is limited to 100 characters maximum
 		
+		# this gets complicated: first get a logical vector with valid names, then AND for duplicated names so that
+		# only valid names which are not duplicated remain
 		values$sample_id_valid <- str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
+		values$sample_id_duplicate <- !duplicated(values$csv_data$Sample_ID)
 		
 		} else {
 			nx_notify_error("Paste something first!")
@@ -270,7 +274,7 @@ server <- function(input, output, session) {
 	joindata <- reactive({
 		validate(need(values$csv_data, "No samples data pasted"))
 		
-		values$csv_data[values$sample_id_valid, ] %>% 
+		values$csv_data[values$sample_id_valid & values$sample_id_duplicate, ] %>% 
 			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate")) %>%
 			as.data.table() # make sure it is not something else after join
 			
@@ -336,13 +340,19 @@ server <- function(input, output, session) {
 	observe({
 		if( !all(values$index_well_valid ) ) {
 			nx_notify_warning("Index_Plate_Well name is not valid! Only A01 to H12 are accepted")
+			values$samples_valid <- nrow( joindata() )
 		} 
 		
 		if( !all(values$sample_id_valid) ){
-			nx_notify_error("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
-			values$samples_valid <- sum( values$sample_id_valid )
+			nx_notify_warning("Sample_ID name is not valid! Only '0-9', 'A-Z', 'a-z', '-' and '_' allowed")
+			values$samples_valid <- nrow( joindata() )
+		}
+		if( !all(values$sample_id_duplicate) ) {
+			nx_notify_warning("Sample_ID names must be unique!")
+			values$samples_valid <- nrow( joindata() )
+			
 		} else {
-			values$samples_valid <- values$samples_matched
+			values$samples_valid <- nrow( joindata() )
 		}
 	})
 		
@@ -442,12 +452,19 @@ server <- function(input, output, session) {
 			row_spec(c(dups_indexes), color = "white", background = "#D7261E") %>%
 			# invalid index well names
 			row_spec( which(
-				!str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-2]$")
+				!values$index_well_valid
+				#!str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-9]$")
 				), color = "white", background = "#F1C40F" ) %>%
 			# invalid sample id names
 			row_spec( which(
-				!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
-				), color = "white", background = "#D7261E")
+				!values$sample_id_valid
+				#!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
+				), color = "white", background = "#F1C40F") %>%
+			# duplicate sample names
+			row_spec( which(
+				!values$sample_id_duplicate
+				#!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
+			), color = "white", background = "#F1C40F")
 	}
 	
 		#---------------------------------------------------------preview data
@@ -459,12 +476,7 @@ server <- function(input, output, session) {
 			kableExtra::kable( joindata()[, ..sh_colnames], "html") %>% # for ..sh_colnames --> Perhaps you intended DT[, ..sh_colnames]. This difference to data.frame is deliberate and explained in FAQ 1.1.
 				kable_styling(fixed_thead = TRUE, 
 											bootstrap_options = c("hover")) %>%
-				row_spec(c(dups_indexes), color = "white", background = "#D7261E") %>%
-				# invalid sample id names
-				row_spec( which(
-					!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
-				), color = "white", background = "#D7261E")
-			
+				row_spec(c(dups_indexes), color = "white", background = "#D7261E")
 		}
 		#---------------------------------------------------------preview sample sheet header
 		output$shPreview2 <- renderPrint({
@@ -484,18 +496,18 @@ server <- function(input, output, session) {
 			valueBox(values$samples_pasted, "samples pasted", color = color)
 		})
 		
-		output$samples_matched <- renderValueBox({
-			color <- ifelse(values$samples_matched == values$samples_pasted && values$samples_matched != 0, 
-											"green", "yellow")
-			validate(need(indexdata(), message = "Set is required!"))
-			valueBox(values$samples_matched, "samples with matched index", color = color)
-		})
+		# output$samples_matched <- renderValueBox({
+		# 	color <- ifelse(values$samples_matched == values$samples_pasted && values$samples_matched != 0, 
+		# 									"green", "yellow")
+		# 	validate(need(indexdata(), message = "Set is required!"))
+		# 	valueBox(values$samples_matched, "samples with matched index", color = color)
+		# })
 		
 		output$samples_valid <- renderValueBox({
 			color <- ifelse(values$samples_pasted == values$samples_valid && values$samples_valid != 0, 
 											"green", "yellow")
 			validate(need(indexdata(), message = "Set is required!"))
-			valueBox(values$samples_valid, "samples with valid names", color = color)
+			valueBox(values$samples_valid, "valid samples", color = color)
 		})
 		
 		output$samples_clashed <- renderValueBox({
