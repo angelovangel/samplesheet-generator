@@ -76,30 +76,36 @@ ui <- fluidPage(
 	#tags$h5("This tool generates Illumina sequencing sample sheets (double indexing only , UDI and CD)."),
 	tags$hr(),
 	
-	navlistPanel(
-		well = F, fluid = F,
-		widths = c(2,10),
+	tabsetPanel(
+		#well = F, fluid = F,
+		#widths = c(2,10),
 		tabPanel(
-			"1. Paste sample-well",
-			tags$h4("Paste sample-well-set mapping and press the Read button"),
+			"1. Paste sample-well data",
+			tags$h4("Paste sample-well-set mapping and press the 'Read data' button"),
+			actionBttn("read", "Read data", style = "fill", color = "default", icon = icon("play")),
+			actionBttn("reset", "Reset", style = "fill", color = "default", icon = icon("stop")),
 			tags$h5(
-				"You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A01  A'"
+				"You can paste a 3-column data from excel, for example 'sample01; A01; A' or 'sample01  A1  B'. The
+				pasted data must have 3 columns (any separator) and at least 1 new line. No empty lines are allowed."
 			),
-			fluidRow(column(
-				6,
-				textAreaInput(
-					"csv",
-					value = demo_data,
-					label = "",
-					height = '300px'
-				)
-			),
+			fluidRow(
+				column(6,
+					textAreaInput(
+						"csv",
+						value = demo_data,
+						label = "Paste data here",
+						height = '300px', width = '100%'
+					)
+				),
 			column(6,
-						 tableOutput("csvread"))),
-			actionBttn("read", "Read data", style = "fill", color = "default")
+						 tableOutput("csvread")
+						 )
+			)
+			
 		), 
 		tabPanel(
 			"2. Select index kit and machine",
+			tags$h4("Select index kit, index set and machine"),
 			fluidRow(
 				column(
 					6,
@@ -207,7 +213,7 @@ server <- function(input, output, session) {
 	# pasted data and indexkits data
 	values <- reactiveValues(csv_data = NULL, 
 													 samples_pasted = 0, # number of samples in pasted data
-													 samples_matched = 0, # number of samples with matched index well
+													 #samples_matched = 0, # number of samples with matched index well
 													 samples_valid = 0, # matched with valid sample_id
 													 samples_clashed = 0, # tracks if indexes are unique in sample sheet
 													 sample_id_valid = TRUE,
@@ -316,21 +322,19 @@ server <- function(input, output, session) {
 		# both indexes are not unique
 		if ( length(unique(joindata()$index_check)) < length(joindata()$index_check) ) {
 			
-			values$samples_matched <- nrow( joindata() )
+			#values$samples_matched <- nrow( joindata() )
 			values$samples_clashed <- length(joindata()$index_check) - length(unique(joindata()$index_check))
-				
-			#nx_report_error("Index clash!", message = "Two or more samples (highlighted in red) have the same indexes! Please check your input.")
-		
+			nx_notify_error("Two or more samples (highlighted in red) have the same indexes! Please check your input.")
 		# i7 or i5 is not unique, i.e. CD indexing schemes
 		} else if( length(unique(joindata()$index)) < length(joindata()$index) ) {
 			
-			values$samples_matched <- nrow( joindata() )
+			#values$samples_matched <- nrow( joindata() )
 			
 			nx_report_warning("Warning!", 
 												message = "Two or more samples have the same i7 or i5 index.\n 
 												This is OK if you are using combinatorial dual indexing scheme, but consider using UDIs!")
 		} else {
-			values$samples_matched <- nrow( joindata() )
+			#values$samples_matched <- nrow( joindata() )
 			values$samples_clashed <- 0
 		}
 		
@@ -352,7 +356,7 @@ server <- function(input, output, session) {
 			values$samples_valid <- nrow( joindata() )
 			
 		} else {
-			values$samples_valid <- nrow( joindata() )
+			values$samples_valid <- nrow( joindata() ) - values$samples_clashed
 		}
 	})
 		
@@ -440,7 +444,7 @@ server <- function(input, output, session) {
 	# ------------------------------ ---------------------------RENDER OUTPUTS
 	output$csvread <- function(){
 		validate(
-			need(values$csv_data, message = "The pasted data must have 3 columns (any separator) and at least 1 new line. No empty lines are allowed.")
+			need(values$csv_data, message = "Preview of pasted data")
 		)
 		# check for samples with the same well and same set
 		dups <- values$csv_data[ , c("Index_Plate_Well", "Index_Plate")]
@@ -463,7 +467,6 @@ server <- function(input, output, session) {
 			# duplicate sample names
 			row_spec( which(
 				!values$sample_id_duplicate
-				#!str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
 			), color = "white", background = "#F1C40F")
 	}
 	
