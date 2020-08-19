@@ -247,7 +247,7 @@ server <- function(input, output, session) {
 		
 		# check for valid index plate well names, check for valid Sample_ID names
 		# now this is a logical vector, to store positions of rows that do match pattern
-		values$index_well_valid <-  str_detect(values$csv_data$Index_Plate_Well, "^[A-H][0-1][0-9]$") 
+		values$index_well_valid <- str_detect(values$csv_data$Index_Plate_Well, "^[A-H]0[0-9]$|^[A-H]1[0-2]$") 
 		# The field for the Sample_ID column has special character restrictions 
 		#as only alphanumeric (ASCII codes 48-57, 65- 90, and 97-122), 
 		#dash (ASCII code 45), and underscore (ASCII code 95) are permitted. 
