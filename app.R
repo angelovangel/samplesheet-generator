@@ -251,6 +251,7 @@ server <- function(input, output, session) {
 		#as only alphanumeric (ASCII codes 48-57, 65- 90, and 97-122), 
 		#dash (ASCII code 45), and underscore (ASCII code 95) are permitted. 
 		#The Sample_ID length is limited to 100 characters maximum
+		
 		values$sample_id_valid <- str_detect(values$csv_data$Sample_ID, "^[-_0-9A-Za-z]{2,100}$")
 		
 		} else {
@@ -269,11 +270,12 @@ server <- function(input, output, session) {
 	joindata <- reactive({
 		validate(need(values$csv_data, "No samples data pasted"))
 		
-		values$csv_data %>% 
+		values$csv_data[values$sample_id_valid, ] %>% 
 			inner_join(indexdata(), by = c("Index_Plate_Well" = "Index_Plate_Well", "Index_Plate" = "Index_Plate")) %>%
 			as.data.table() # make sure it is not something else after join
 			
 	})
+	
 	#------------------------------------------------------------ header of sample sheet
 	sh <- reactive({
 		c(
