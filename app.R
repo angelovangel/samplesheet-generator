@@ -5,6 +5,7 @@ library(shinydashboard)
 library(shinythemes)
 library(shinyWidgets)
 library(shinyjs)
+library(shinyalert)
 library(shinypop) # remotes::install_github("dreamRs/shinypop")
 library(data.table)
 library(dplyr)
@@ -51,6 +52,7 @@ ui <- fluidPage(
 	includeCSS("css/shinydashboard.css"),
 	
 	useShinyjs(),
+	useShinyalert(),
 	use_notiflix_notify(position = "right-bottom", width = "480px", timeout = 4000),
 	use_notiflix_report(cssAnimationDuration = 100, width = "100%", messageMaxLength = 1800),
 	#use_notie(), 
@@ -542,6 +544,17 @@ server <- function(input, output, session) {
 		filename = paste(Sys.Date(), "-sample-index.csv", sep = ""),
 		content = function(file) {fwrite( joindata()[, ..sh_colnames], sep = ",", file = file )}
 	)
+	
+	observeEvent(input$reset, {
+		shinyalert(title = "",
+							 type = "warning",
+							 text = "Restart app?", 
+							 html = TRUE, 
+							 confirmButtonText = "Start again", 
+							 showCancelButton = TRUE, 
+							 callbackJS = "function(x) { if (x == true) {history.go(0);} }" # restart app by reloading page
+		)
+	})
 
 }
 
