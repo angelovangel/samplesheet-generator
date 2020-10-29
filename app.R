@@ -24,7 +24,8 @@ indexkitslist <- list(
 	"Illumina" = list(
 		"IDT for Illumina DNA UD Indexes, Tagmentation" = "idt-udp",
 		"IDT for Illumina DNA/RNA UD Indexes, Tagmentation, ver2" = "idt-udp-ver2",
-		"Nextera DNA CD Indexes (96 Indexes, 96 Samples)" = "nextera-dna-cd96"),
+		"Nextera DNA CD Indexes (96 Indexes, 96 Samples)" = "nextera-dna-cd96", 
+		"Nextera XT v2 CD" = "nextera-xt-v2"),
 	"NEB" = list(
 		"NEBNext Multiplex Oligos for Illumina (96 Unique Dual Index Primer Pairs)" = "neb"),
 	"Zymo" = list(
