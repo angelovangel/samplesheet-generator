@@ -4,7 +4,7 @@
 library(shiny)
 library(shinydashboard)
 library(shinythemes)
-library(shinyWidgets)
+library(shinyWidgets) #remotes::install_github("dreamRs/shinyWidgets")
 library(shinyjs)
 library(shinyalert)
 library(shinypop) # remotes::install_github("dreamRs/shinypop")
