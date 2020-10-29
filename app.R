@@ -1,5 +1,6 @@
 ## app.R ##
-#test
+# samplesheet-generator shiny app
+
 library(shiny)
 library(shinydashboard)
 library(shinythemes)
