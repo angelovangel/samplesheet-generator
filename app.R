@@ -164,7 +164,8 @@ ui <- fluidPage(
 			# inputs for Header
 			fluidRow(column(
 				3,
-				airDatepickerInput(inputId = "date", "Date", value = Sys.Date())
+				# airDatePicker gives some strange bugs in chrome
+				dateInput(inputId = "date", "Date", value = Sys.Date())
 			), column(
 				3,
 				textInput(inputId = "investigator", "Investigator"),
@@ -381,6 +382,10 @@ server <- function(input, output, session) {
 									 	tags$li(
 									 		tags$a(href = "https://emea.support.illumina.com/bulletins/2020/06/illumina-library-prep-kits-and-associated-index-kits.html", 
 									 					 "Nextera DNA CD Indexes (96 Indexes, 96 Samples), Cat.# 20018708", 
+									 					 target = "_blank")),
+									 	tags$li(
+									 		tags$a(href = "https://emea.support.illumina.com/bulletins/2020/06/illumina-library-prep-kits-and-associated-index-kits.html", 
+									 					 "Nextera XT Index Kit v2 Set A-D, Cat.# FC‑131‑2001, FC‑131‑2002, FC‑131‑2003, FC‑131‑2004", 
 									 					 target = "_blank")),
 									 	tags$li(
 									 		tags$a(
