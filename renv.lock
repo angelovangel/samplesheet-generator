@@ -102,10 +102,10 @@
     },
     "data.table": {
       "Package": "data.table",
-      "Version": "1.13.1",
+      "Version": "1.13.2",
       "Source": "Repository",
-      "Repository": null,
-      "Hash": "cbd0570423408954252fa569f24c6c58"
+      "Repository": "CRAN",
+      "Hash": "907b184e0fd13bc19154a8f322920015"
     },
     "digest": {
       "Package": "digest",
