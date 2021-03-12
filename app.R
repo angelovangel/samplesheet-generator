@@ -302,12 +302,14 @@ server <- function(input, output, session) {
 				MoreArgs = list(sep = ",")
 			),
 			"", #empty lines are ignored - here just for clarity
-			"[SoftwareInfo]",
+			"[AppInfo]",
 			paste("name", "samplesheet-generator", sep = ","),
+			paste("author", "Angel Angelov", sep = ","),
 			paste("git_commit", commit_hash, sep = ","),
 			# this app must be under git control!
 			paste("executed_on", Sys.time(), sep = ","),
-			paste("author", "Angel Angelov", sep = ","),
+			paste("indexkit_used", input$indexkit, sep = ","),
+			paste("workflow_used", input$machine, sep = ","),
 			"",
 			"[Settings]",
 			paste("Adapter", sh_values$trimm_seq1, sep = ","),
